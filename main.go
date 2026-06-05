@@ -21,6 +21,18 @@ type TransactionResponse struct {
 	Message     string `json:"message"`
 }
 
+type GetResponse struct {
+	Label string `json:"label"`
+	Icon  string `json:"icon"`
+}
+
+func getHandler(c fiber.Ctx) error {
+	return c.JSON(GetResponse{
+		Label: "Exiled Apes Academy",
+		Icon:  "https://exiledapes.academy/wp-content/uploads/2021/09/X_share.png",
+	})
+}
+
 func postHandler(c fiber.Ctx) error {
 	var body TransactionRequest
 	if err := c.Bind().Body(&body); err != nil || body.Account == "" {
@@ -75,6 +87,7 @@ func buildSolTransferTx(_ context.Context, sender solana.PublicKey) (*solana.Tra
 
 func main() {
 	app := fiber.New()
+	app.Get("/transaction", getHandler)
 	app.Post("/transaction", postHandler)
 	log.Fatal(app.Listen(":7542"))
 }
