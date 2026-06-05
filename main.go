@@ -10,6 +10,8 @@ import (
 	"github.com/gofiber/fiber/v3"
 )
 
+const oneSol = 1_000_000_000
+
 var merchantWallet = solana.MustPublicKeyFromBase58("aNq6vs7ytCUUG4V2qXS12fkN94enx5BJQijy1YjP9va")
 
 type TransactionRequest struct {
@@ -60,8 +62,19 @@ func postHandler(c fiber.Ctx) error {
 	})
 }
 
+func buildMemoInstruction(memo string, sender solana.PublicKey) solana.Instruction {
+	return solana.NewInstruction(
+		solana.MemoProgramID,
+		solana.AccountMetaSlice{
+			solana.NewAccountMeta(sender, true, true),
+		},
+		[]byte(memo),
+	)
+}
+
+
 func buildSolTransferTx(_ context.Context, sender solana.PublicKey) (*solana.Transaction, error) {
-	const lamports = uint64(1_000_000_000) // 1 SOL = 1,000,000,000 lamports
+	const lamports = uint64(oneSol / 100) // 0.01 SOL
 
 	transferIx, err := system.NewTransferInstruction(
 		lamports,
@@ -73,11 +86,14 @@ func buildSolTransferTx(_ context.Context, sender solana.PublicKey) (*solana.Tra
 	}
 
 	var zeroHash solana.Hash
+	memoIx := buildMemoInstruction("RqSfVF1fNFXk5QrMMXc6YbascbKceAVXn7Trw3776vP4HM44Q", sender)
+
 	tx, err := solana.NewTransaction(
-		[]solana.Instruction{transferIx},
+		[]solana.Instruction{transferIx, memoIx},
 		zeroHash,
 		solana.TransactionPayer(sender),
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +101,15 @@ func buildSolTransferTx(_ context.Context, sender solana.PublicKey) (*solana.Tra
 	return tx, nil
 }
 
+func healthHandler(c fiber.Ctx) error {
+	return c.JSON(fiber.Map{
+		"status": "ok",
+	})
+}
+
 func main() {
 	app := fiber.New()
+	app.Get("/", healthHandler)
 	app.Get("/transaction", getHandler)
 	app.Post("/transaction", postHandler)
 	log.Fatal(app.Listen(":7542"))

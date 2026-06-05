@@ -6,5 +6,6 @@ run:
 
 remove:
 	docker rm -f solana-pay
+	docker image rm -f solana-pay
 
 .PHONY: build run remove
