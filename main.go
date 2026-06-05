@@ -7,12 +7,16 @@ import (
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/programs/system"
+	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/gofiber/fiber/v3"
 )
 
 const oneSol = 1_000_000_000
 
-var merchantWallet = solana.MustPublicKeyFromBase58("aNq6vs7ytCUUG4V2qXS12fkN94enx5BJQijy1YjP9va")
+var (
+	rpcClient     = rpc.New(rpc.DevNet_RPC)
+	merchantWallet = solana.MustPublicKeyFromBase58("aNq6vs7ytCUUG4V2qXS12fkN94enx5BJQijy1YjP9va")
+)
 
 type TransactionRequest struct {
 	Account string `json:"account"`
@@ -73,7 +77,7 @@ func buildMemoInstruction(memo string, sender solana.PublicKey) solana.Instructi
 }
 
 
-func buildSolTransferTx(_ context.Context, sender solana.PublicKey) (*solana.Transaction, error) {
+func buildSolTransferTx(ctx context.Context, sender solana.PublicKey) (*solana.Transaction, error) {
 	const lamports = uint64(oneSol / 100) // 0.01 SOL
 
 	transferIx, err := system.NewTransferInstruction(
@@ -85,13 +89,15 @@ func buildSolTransferTx(_ context.Context, sender solana.PublicKey) (*solana.Tra
 		return nil, err
 	}
 
-	var zeroHash solana.Hash
-	// memoIx := buildMemoInstruction("RqSfVF1fNFXk5QrMMXc6YbascbKceAVXn7Trw3776vP4HM44Q", sender)
+	memoIx := buildMemoInstruction("RqSfVF1fNFXk5QrMMXc6YbascbKceAVXn7Trw3776vP4HM44Q", sender)
+	recent, err := rpcClient.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
+    if err != nil {
+        return nil, err
+    }
 
 	tx, err := solana.NewTransaction(
-		// []solana.Instruction{transferIx, memoIx},
-		[]solana.Instruction{transferIx},
-		zeroHash,
+		[]solana.Instruction{transferIx, memoIx},
+		recent.Value.Blockhash,
 		solana.TransactionPayer(sender),
 	)
 
