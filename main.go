@@ -86,10 +86,11 @@ func buildSolTransferTx(_ context.Context, sender solana.PublicKey) (*solana.Tra
 	}
 
 	var zeroHash solana.Hash
-	memoIx := buildMemoInstruction("RqSfVF1fNFXk5QrMMXc6YbascbKceAVXn7Trw3776vP4HM44Q", sender)
+	// memoIx := buildMemoInstruction("RqSfVF1fNFXk5QrMMXc6YbascbKceAVXn7Trw3776vP4HM44Q", sender)
 
 	tx, err := solana.NewTransaction(
-		[]solana.Instruction{transferIx, memoIx},
+		// []solana.Instruction{transferIx, memoIx},
+		[]solana.Instruction{transferIx},
 		zeroHash,
 		solana.TransactionPayer(sender),
 	)
